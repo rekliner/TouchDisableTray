@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using System.Reflection;
 using System.Collections.Generic;
+using HardwareHelperLib;
 
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MIT License
@@ -72,6 +73,21 @@ namespace TouchDisableTray
         }
         private bool showingYes = true;
 
+        HH_Lib _hwLib = null;
+        private HH_Lib hwLib
+        {
+            get
+            {
+                if(_hwLib == null)
+                {
+                    _hwLib = new HH_Lib();
+                }
+                return _hwLib;
+            }
+        }
+
+        DEVICE_INFO touchScreenDevice;
+
         /// <summary>
         /// This class should be created and passed into Application.Run( ... )
         /// </summary>
@@ -105,7 +121,6 @@ namespace TouchDisableTray
         # region the child forms
 
         private SettingsForm settingsForm;
-        //private System.Windows.Window introForm;
 
         private void ShowSettingsForm()
         {
@@ -116,25 +131,10 @@ namespace TouchDisableTray
                 settingsForm.Show();
             }
             else { settingsForm.Activate(); }
-            //if (introForm == null)
-            //{
-            //    introForm = new WpfFormLibrary.IntroForm();
-            //    introForm.Closed += mainForm_Closed; // avoid reshowing a disposed form
-            //    ElementHost.EnableModelessKeyboardInterop(introForm);
-            //    introForm.Show();
-            //}
-            //else { introForm.Activate(); }
         }
 
         private void ShowDetailsForm()
         {
-            //if (detailsForm == null)
-            //{
-            //    detailsForm = new DetailsForm {HostManager = hostManager};
-            //    detailsForm.Closed += detailsForm_Closed; // avoid reshowing a disposed form
-            //    detailsForm.Show();
-            //}
-            //else { detailsForm.Activate(); }
         }
 
         private void notifyIcon_DoubleClick(object sender, EventArgs e) { ShowSettingsForm();    }
@@ -152,13 +152,15 @@ namespace TouchDisableTray
                     }
                 case MouseButtons.Left:
                     {
-                        // Switch the icon
+                        // Switch the icon and hardware state
                         if(showingYes)
                         {
+                            hwLib.SetDeviceState(touchScreenDevice, false);
                             notifyIcon.Icon = NoIcon;
                         }
                         else
                         {
+                            hwLib.SetDeviceState(touchScreenDevice, true);
                             notifyIcon.Icon = YesIcon;
                         }
                         showingYes = !showingYes;
@@ -169,42 +171,38 @@ namespace TouchDisableTray
 
 
         //// attach to context menu items
-        //private void showHelpItem_Click(object sender, EventArgs e)     { ShowSettingsForm();    }
         //private void showDetailsItem_Click(object sender, EventArgs e)  { ShowDetailsForm();  }
 
         //// null out the forms so we know to create a new one.
         private void settingsForm_Closed(object sender, EventArgs e)     { settingsForm = null; }
-        //private void mainForm_Closed(object sender, EventArgs e)        { introForm = null;   }
 
         # endregion the child forms
 
         # region generic code framework
 
-        private System.ComponentModel.IContainer components;	// a list of components to dispose when the context is disposed
         private NotifyIcon notifyIcon;				            // the icon that sits in the system tray
 
         private void InitializeContext()
         {
-            components = new System.ComponentModel.Container();
-            notifyIcon = new NotifyIcon(components)
+            var devices = hwLib.GetAll("HID-compliant touch screen");
+            if (devices.Count != 1)
+            {
+                MessageBox.Show("More than one device found!  Error!");
+                throw new Exception("Multiple devices found");
+            }
+            touchScreenDevice = devices[0];
+            showingYes = touchScreenDevice.status == DeviceStatus.Enabled;
+
+            notifyIcon = new NotifyIcon()
                              {
                                  ContextMenuStrip = new ContextMenuStrip(),
-                                 Icon = YesIcon,
+                                 Icon = showingYes ? YesIcon : NoIcon,
                                  Text = DefaultTooltip,
                                  Visible = true
                              };
             notifyIcon.ContextMenuStrip.Opening += ContextMenuStrip_Opening;
             notifyIcon.DoubleClick += notifyIcon_DoubleClick;
             notifyIcon.MouseUp += notifyIcon_MouseUp;
-        }
-
-        /// <summary>
-        /// When the application context is disposed, dispose things like the notify icon.
-        /// </summary>
-        /// <param name="disposing"></param>
-        protected override void Dispose( bool disposing )
-        {
-            if( disposing && components != null) { components.Dispose(); }
         }
 
         /// <summary>
@@ -222,8 +220,8 @@ namespace TouchDisableTray
         /// </summary>
         protected override void ExitThreadCore()
         {
-            //// before we exit, let forms clean themselves up.
-            //if (introForm != null) { introForm.Close(); }
+            // before we exit, let forms clean themselves up.
+            if (settingsForm != null) { settingsForm.Close(); }
             //if (detailsForm != null) { detailsForm.Close(); }
 
             notifyIcon.Visible = false; // should remove lingering tray icon
