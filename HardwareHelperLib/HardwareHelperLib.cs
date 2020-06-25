@@ -252,11 +252,6 @@ namespace HardwareHelperLib
                     }
                     // Passed filters, add it!
                     HWList.Add(new DEVICE_INFO { name = DeviceName.ToString(), friendlyName = DeviceFriendlyName.ToString(), hardwareId = DeviceHardwareId.ToString(), status = deviceStatus, statusstr = dstatustr });
-                    ////if (DeviceHardwareId.ToString().StartsWith("HID\\"))
-                    //if (DeviceName.ToString().StartsWith("HID-compliant touch screen"))
-                    //{
-                    //    HWList.Add(new DEVICE_INFO { name = DeviceName.ToString(), friendlyName = DeviceFriendlyName.ToString(), hardwareId = DeviceHardwareId.ToString(), status = deviceStatus, statusstr = dstatustr });
-                    //}
                 }
                 Native.SetupDiDestroyDeviceInfoList(hDevInfo);
             }

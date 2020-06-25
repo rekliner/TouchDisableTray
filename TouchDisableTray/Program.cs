@@ -15,7 +15,11 @@ namespace TouchDisableTray
         [STAThread]
         static void Main()
         {
-            if (!SingleInstance.Start()) { return; }
+            if (!SingleInstance.Start())
+            {
+                MessageBox.Show("Instance already running.  Check your hidden icons and/or Task Manager.", "Failed to Launch");
+                return;
+            }
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             try

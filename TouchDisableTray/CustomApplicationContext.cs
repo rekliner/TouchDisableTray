@@ -71,6 +71,9 @@ namespace TouchDisableTray
                 return _noIcon;
             }
         }
+        /// <summary>
+        /// Indicates whether we're <B>currently</B> showing yes or no
+        /// </summary>
         private bool showingYes = true;
 
         HH_Lib _hwLib = null;
@@ -94,9 +97,6 @@ namespace TouchDisableTray
         public CustomApplicationContext() 
         {
             InitializeContext();
-            //hostManager = new HostManager(notifyIcon);
-            //hostManager.BuildServerAssociations();
-            //if (!hostManager.IsDecorated) { ShowSettingsForm(); }
         }
 
         private bool contextMenuInitialized = false;
@@ -107,9 +107,10 @@ namespace TouchDisableTray
             if (!contextMenuInitialized)
             {
                 //notifyIcon.ContextMenuStrip.Items.Add(new ToolStripSeparator());
-                var stuffItem = new ToolStripMenuItem("&DoStuff");
+                var settingsItem = new ToolStripMenuItem("&Settings");
+                settingsItem.Click += settingsItem_Click;
                 // add to the .Click event
-                notifyIcon.ContextMenuStrip.Items.Add(stuffItem);
+                notifyIcon.ContextMenuStrip.Items.Add(settingsItem);
                 var exitItem = new ToolStripMenuItem("&Exit");
                 exitItem.Click += exitItem_Click;
                 notifyIcon.ContextMenuStrip.Items.Add(exitItem);
@@ -133,12 +134,6 @@ namespace TouchDisableTray
             else { settingsForm.Activate(); }
         }
 
-        private void ShowDetailsForm()
-        {
-        }
-
-        private void notifyIcon_DoubleClick(object sender, EventArgs e) { ShowSettingsForm();    }
-
         // From http://stackoverflow.com/questions/2208690/invoke-notifyicons-context-menu
         private void notifyIcon_MouseUp(object sender, MouseEventArgs e)
         {
@@ -151,27 +146,20 @@ namespace TouchDisableTray
                         break;
                     }
                 case MouseButtons.Left:
+                    try
                     {
                         // Switch the icon and hardware state
-                        if(showingYes)
-                        {
-                            hwLib.SetDeviceState(touchScreenDevice, false);
-                            notifyIcon.Icon = NoIcon;
-                        }
-                        else
-                        {
-                            hwLib.SetDeviceState(touchScreenDevice, true);
-                            notifyIcon.Icon = YesIcon;
-                        }
                         showingYes = !showingYes;
-                        break;
+                        hwLib.SetDeviceState(touchScreenDevice, showingYes);
+                        notifyIcon.Icon = showingYes ? YesIcon : NoIcon;
                     }
+                    catch(Exception ex)
+                    {
+                        MessageBox.Show("Exception while trying to change hardware state.  Message was: " + ex.ToString(), "Error");
+                    }
+                    break;
             }
         }
-
-
-        //// attach to context menu items
-        //private void showDetailsItem_Click(object sender, EventArgs e)  { ShowDetailsForm();  }
 
         //// null out the forms so we know to create a new one.
         private void settingsForm_Closed(object sender, EventArgs e)     { settingsForm = null; }
@@ -180,14 +168,14 @@ namespace TouchDisableTray
 
         # region generic code framework
 
-        private NotifyIcon notifyIcon;				            // the icon that sits in the system tray
+        private NotifyIcon notifyIcon;            // the icon that sits in the system tray
 
         private void InitializeContext()
         {
             var devices = hwLib.GetAll("HID-compliant touch screen");
             if (devices.Count != 1)
             {
-                MessageBox.Show("More than one device found!  Error!");
+                MessageBox.Show("More than one device or no touch screen device found!  Error!");
                 throw new Exception("Multiple devices found");
             }
             touchScreenDevice = devices[0];
@@ -201,8 +189,12 @@ namespace TouchDisableTray
                                  Visible = true
                              };
             notifyIcon.ContextMenuStrip.Opening += ContextMenuStrip_Opening;
-            notifyIcon.DoubleClick += notifyIcon_DoubleClick;
             notifyIcon.MouseUp += notifyIcon_MouseUp;
+        }
+
+        private void settingsItem_Click(object sender, EventArgs e)
+        {
+            ShowSettingsForm();
         }
 
         /// <summary>
@@ -222,7 +214,6 @@ namespace TouchDisableTray
         {
             // before we exit, let forms clean themselves up.
             if (settingsForm != null) { settingsForm.Close(); }
-            //if (detailsForm != null) { detailsForm.Close(); }
 
             notifyIcon.Visible = false; // should remove lingering tray icon
             base.ExitThreadCore();
