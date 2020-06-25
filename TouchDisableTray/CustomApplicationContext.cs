@@ -45,7 +45,6 @@ namespace TouchDisableTray
     {
         // Icon graphic from http://prothemedesign.com/circular-icons/
         private static readonly string DefaultTooltip = "Enable or Disable touch screen";
-        //private readonly HostManager hostManager;
 
         private Icon _yesIcon = null;
         private Icon YesIcon
