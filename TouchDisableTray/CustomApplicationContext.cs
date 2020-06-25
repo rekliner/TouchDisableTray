@@ -141,21 +141,24 @@ namespace TouchDisableTray
             {
                 case MouseButtons.Right:
                     {
-                        MethodInfo mi = typeof(NotifyIcon).GetMethod("ShowContextMenu", BindingFlags.Instance | BindingFlags.NonPublic);
+                        MethodInfo mi = typeof(NotifyIcon).GetMethod("ShowContextMenu",
+                            BindingFlags.Instance | BindingFlags.NonPublic);
                         mi.Invoke(notifyIcon, null);
                         break;
                     }
                 case MouseButtons.Left:
                     try
                     {
-                        // Switch the icon and hardware state
+                        // Switch the icon and hardware state. Exception will skip the rest if
+                        // there's a failure
+                        hwLib.SetDeviceState(touchScreenDevice, !showingYes);
                         showingYes = !showingYes;
-                        hwLib.SetDeviceState(touchScreenDevice, showingYes);
                         notifyIcon.Icon = showingYes ? YesIcon : NoIcon;
                     }
                     catch(Exception ex)
                     {
-                        MessageBox.Show("Exception while trying to change hardware state.  Message was: " + ex.ToString(), "Error");
+                        MessageBox.Show("Exception while trying to change hardware state.  Message was: "
+                            + ex.ToString(), "Error");
                     }
                     break;
             }
